@@ -75,9 +75,6 @@ raw_ostream::~raw_ostream() {
     delete [] OutBufStart;
 }
 
-// An out of line virtual method to provide a home for the class vtable.
-void raw_ostream::handle() {}
-
 size_t raw_ostream::preferred_buffer_size() const {
   // BUFSIZ is intended to be a reasonable default.
   return BUFSIZ;
@@ -485,8 +482,6 @@ raw_ostream &raw_ostream::indent(unsigned NumSpaces) {
 raw_ostream &raw_ostream::write_zeros(unsigned NumZeros) {
   return write_padding<'\0'>(*this, NumZeros);
 }
-
-void raw_ostream::anchor() {}
 
 //===----------------------------------------------------------------------===//
 //  Formatted Output

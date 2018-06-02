@@ -92,6 +92,7 @@ public:
   raw_ostream(const raw_ostream &) = delete;
   void operator=(const raw_ostream &) = delete;
 
+  // A non-inline virtual destructor serving as the vtable anchor.
   virtual ~raw_ostream();
 
   /// tell - Return the current offset with the file.
@@ -296,9 +297,6 @@ private:
   /// \invariant { Size > 0 }
   virtual void write_impl(const char *Ptr, size_t Size) = 0;
 
-  // An out of line virtual method to provide a home for the class vtable.
-  virtual void handle();
-
   /// Return the current position within the stream, not counting the bytes
   /// currently in the buffer.
   virtual uint64_t current_pos() const = 0;
@@ -332,8 +330,6 @@ private:
   /// Copy data into the buffer. Size must not be greater than the number of
   /// unused bytes in the buffer.
   void copy_to_buffer(const char *Ptr, size_t Size);
-
-  virtual void anchor();
 };
 
 /// An abstract base class for streams implementations that also support a
