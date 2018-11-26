@@ -592,14 +592,12 @@ static std::error_code fillStatus(int StatRet, const struct stat &Status,
   }
 
   uint32_t atime_nsec, mtime_nsec;
-#if defined(HAVE_STRUCT_STAT_ST_MTIMESPEC_TV_NSEC)
+#ifdef __APPLE__
   atime_nsec = Status.st_atimespec.tv_nsec;
   mtime_nsec = Status.st_mtimespec.tv_nsec;
-#elif defined(HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC)
+#else
   atime_nsec = Status.st_atim.tv_nsec;
   mtime_nsec = Status.st_mtim.tv_nsec;
-#else
-  atime_nsec = mtime_nsec = 0;
 #endif
 
   perms Perms = static_cast<perms>(Status.st_mode) & all_perms;
