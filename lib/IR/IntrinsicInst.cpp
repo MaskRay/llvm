@@ -107,7 +107,7 @@ ConstrainedFPIntrinsic::getRoundingMode() const {
   unsigned NumOperands = getNumArgOperands();
   Metadata *MD =
       dyn_cast<MetadataAsValue>(getArgOperand(NumOperands - 2))->getMetadata();
-  if (!MD || !isa<MDString>(MD))
+  if (!isa_and_nonnull<MDString>(MD))
     return rmInvalid;
   StringRef RoundingArg = cast<MDString>(MD)->getString();
 
@@ -127,7 +127,7 @@ ConstrainedFPIntrinsic::getExceptionBehavior() const {
   unsigned NumOperands = getNumArgOperands();
   Metadata *MD =
       dyn_cast<MetadataAsValue>(getArgOperand(NumOperands - 1))->getMetadata();
-  if (!MD || !isa<MDString>(MD))
+  if (!isa_and_nonnull<MDString>(MD))
     return ebInvalid;
   StringRef ExceptionArg = cast<MDString>(MD)->getString();
   return StringSwitch<ExceptionBehavior>(ExceptionArg)

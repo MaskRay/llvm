@@ -556,7 +556,7 @@ RecurrenceDescriptor::InstDesc
 RecurrenceDescriptor::isRecurrenceInstr(Instruction *I, RecurrenceKind Kind,
                                         InstDesc &Prev, bool HasFunNoNaNAttr) {
   Instruction *UAI = Prev.getUnsafeAlgebraInst();
-  if (!UAI && isa<FPMathOperator>(I) && !I->hasAllowReassoc())
+  if (!UAisa_and_nonnull<FPMathOperator>(I) && !I->hasAllowReassoc())
     UAI = I; // Found an unsafe (unvectorizable) algebra instruction.
 
   switch (I->getOpcode()) {

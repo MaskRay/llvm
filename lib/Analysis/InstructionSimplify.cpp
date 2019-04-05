@@ -355,9 +355,9 @@ static Value *ThreadBinOpOverSelect(Instruction::BinaryOps Opcode, Value *LHS,
     return TV;
 
   // If one branch simplified to undef, return the other one.
-  if (TV && isa<UndefValue>(TV))
+  if (isa_and_nonnull<UndefValue>(TV))
     return FV;
-  if (FV && isa<UndefValue>(FV))
+  if (isa_and_nonnull<UndefValue>(FV))
     return TV;
 
   // If applying the operation did not change the true and false select values,

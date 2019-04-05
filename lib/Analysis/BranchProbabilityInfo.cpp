@@ -500,7 +500,7 @@ computeUnlikelySuccessors(const BasicBlock *BB, Loop *L,
   Constant *CmpConst = dyn_cast<Constant>(CI->getOperand(1));
   // Collect the instructions until we hit a PHI
   SmallVector<BinaryOperator *, 1> InstChain;
-  while (!CmpPHI && CmpLHS && isa<BinaryOperator>(CmpLHS) &&
+  while (!CmpPHI && isa_and_nonnull<BinaryOperator>(CmpLHS) &&
          isa<Constant>(CmpLHS->getOperand(1))) {
     // Stop if the chain extends outside of the loop
     if (!L->contains(CmpLHS))

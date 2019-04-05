@@ -808,7 +808,7 @@ static Value *foldOperationIntoSelectOperand(Instruction &I, Value *SO,
   Value *RI = Builder.CreateBinOp(BO->getOpcode(), Op0, Op1,
                                   SO->getName() + ".op");
   auto *FPInst = dyn_cast<Instruction>(RI);
-  if (FPInst && isa<FPMathOperator>(FPInst))
+  if (isa_and_nonnull<FPMathOperator>(FPInst))
     FPInst->copyFastMathFlags(BO);
   return RI;
 }
@@ -880,7 +880,7 @@ static Value *foldOperationIntoPhiValue(BinaryOperator *I, Value *InV,
 
   Value *RI = Builder.CreateBinOp(I->getOpcode(), Op0, Op1, "phitmp");
   auto *FPInst = dyn_cast<Instruction>(RI);
-  if (FPInst && isa<FPMathOperator>(FPInst))
+  if (isa_and_nonnull<FPMathOperator>(FPInst))
     FPInst->copyFastMathFlags(I);
   return RI;
 }

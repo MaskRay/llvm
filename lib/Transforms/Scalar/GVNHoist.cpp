@@ -999,7 +999,7 @@ private:
 
     makeGepsAvailable(Repl, HoistPt, InstructionsToHoist, Gep);
 
-    if (Val && isa<GetElementPtrInst>(Val))
+    if (isa_and_nonnull<GetElementPtrInst>(Val))
       makeGepsAvailable(Repl, HoistPt, InstructionsToHoist, Val);
 
     return true;

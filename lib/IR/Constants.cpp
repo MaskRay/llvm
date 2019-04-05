@@ -1400,7 +1400,7 @@ const APInt &Constant::getUniqueInteger() const {
     return CI->getValue();
   assert(this->getSplatValue() && "Doesn't contain a unique integer!");
   const Constant *C = this->getAggregateElement(0U);
-  assert(C && isa<ConstantInt>(C) && "Not a vector of numbers!");
+  assert(isa_and_nonnull<ConstantInt>(C) && "Not a vector of numbers!");
   return cast<ConstantInt>(C)->getValue();
 }
 

@@ -76,7 +76,7 @@ void VPlanSlp::addCombined(ArrayRef<VPValue *> Operands, VPInstruction *New) {
 bool VPlanSlp::areVectorizable(ArrayRef<VPValue *> Operands) const {
   // Currently we only support VPInstructions.
   if (!all_of(Operands, [](VPValue *Op) {
-        return Op && isa<VPInstruction>(Op) &&
+        return isa_and_nonnull<VPInstruction>(Op) &&
                cast<VPInstruction>(Op)->getUnderlyingInstr();
       })) {
     LLVM_DEBUG(dbgs() << "VPSLP: not all operands are VPInstructions\n");

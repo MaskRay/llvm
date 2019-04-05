@@ -461,7 +461,7 @@ static Value *simplifyX86varShift(const IntrinsicInst &II,
   SmallVector<int, 8> ShiftAmts;
   for (int I = 0; I < NumElts; ++I) {
     auto *CElt = CShift->getAggregateElement(I);
-    if (CElt && isa<UndefValue>(CElt)) {
+    if (isa_and_nonnull<UndefValue>(CElt)) {
       ShiftAmts.push_back(-1);
       continue;
     }
@@ -555,7 +555,7 @@ static Value *simplifyX86pack(IntrinsicInst &II, bool IsSigned) {
       unsigned SrcIdx = Lane * NumSrcEltsPerLane + Elt % NumSrcEltsPerLane;
       auto *Cst = (Elt >= NumSrcEltsPerLane) ? Cst1 : Cst0;
       auto *COp = Cst->getAggregateElement(SrcIdx);
-      if (COp && isa<UndefValue>(COp)) {
+      if (isa_and_nonnull<UndefValue>(COp)) {
         Vals.push_back(UndefValue::get(ResTy->getScalarType()));
         continue;
       }
@@ -1540,7 +1540,7 @@ static Value *simplifyNeonTbl1(const IntrinsicInst &II,
   for (unsigned I = 0; I < NumElts; ++I) {
     Constant *COp = C->getAggregateElement(I);
 
-    if (!COp || !isa<ConstantInt>(COp))
+    if (!isa_and_nonnull<ConstantInt>(COp))
       return nullptr;
 
     Indexes[I] = cast<ConstantInt>(COp)->getLimitedValue();

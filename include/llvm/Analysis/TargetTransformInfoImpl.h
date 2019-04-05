@@ -610,7 +610,7 @@ protected:
   }
 
   bool isStridedAccess(const SCEV *Ptr) {
-    return Ptr && isa<SCEVAddRecExpr>(Ptr);
+    return isa_and_nonnull<SCEVAddRecExpr>(Ptr);
   }
 
   const SCEVConstant *getConstantStrideStep(ScalarEvolution *SE,

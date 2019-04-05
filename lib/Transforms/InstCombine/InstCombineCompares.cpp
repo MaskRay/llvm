@@ -3244,12 +3244,12 @@ Instruction *InstCombiner::foldICmpBinOp(ICmpInst &I) {
     return new ICmpInst(Pred, X, Builder.CreateNot(Op0));
 
   bool NoOp0WrapProblem = false, NoOp1WrapProblem = false;
-  if (BO0 && isa<OverflowingBinaryOperator>(BO0))
+  if (isa_and_nonnull<OverflowingBinaryOperator>(BO0))
     NoOp0WrapProblem =
         ICmpInst::isEquality(Pred) ||
         (CmpInst::isUnsigned(Pred) && BO0->hasNoUnsignedWrap()) ||
         (CmpInst::isSigned(Pred) && BO0->hasNoSignedWrap());
-  if (BO1 && isa<OverflowingBinaryOperator>(BO1))
+  if (isa_and_nonnull<OverflowingBinaryOperator>(BO1))
     NoOp1WrapProblem =
         ICmpInst::isEquality(Pred) ||
         (CmpInst::isUnsigned(Pred) && BO1->hasNoUnsignedWrap()) ||

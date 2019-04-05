@@ -765,7 +765,8 @@ void Verifier::visitNamedMDNode(const NamedMDNode &NMD) {
              &NMD);
   for (const MDNode *MD : NMD.operands()) {
     if (NMD.getName() == "llvm.dbg.cu")
-      AssertDI(MD && isa<DICompileUnit>(MD), "invalid compile unit", &NMD, MD);
+      AssertDI(isa_and_nonnull<DICompileUnit>(MD), "invalid compile unit", &NMD,
+               MD);
 
     if (!MD)
       continue;
@@ -944,8 +945,8 @@ void Verifier::visitTemplateParams(const MDNode &N, const Metadata &RawParams) {
   auto *Params = dyn_cast<MDTuple>(&RawParams);
   AssertDI(Params, "invalid template params", &N, &RawParams);
   for (Metadata *Op : Params->operands()) {
-    AssertDI(Op && isa<DITemplateParameter>(Op), "invalid template parameter",
-             &N, Params, Op);
+    AssertDI(isa_and_nonnull<DITemplateParameter>(Op),
+             "invalid template parameter", &N, Params, Op);
   }
 }
 
@@ -1070,14 +1071,14 @@ void Verifier::visitDICompileUnit(const DICompileUnit &N) {
   if (auto *Array = N.getRawImportedEntities()) {
     AssertDI(isa<MDTuple>(Array), "invalid imported entity list", &N, Array);
     for (Metadata *Op : N.getImportedEntities()->operands()) {
-      AssertDI(Op && isa<DIImportedEntity>(Op), "invalid imported entity ref",
-               &N, Op);
+      AssertDI(isa_and_nonnull<DIImportedEntity>(Op),
+               "invalid imported entity ref", &N, Op);
     }
   }
   if (auto *Array = N.getRawMacros()) {
     AssertDI(isa<MDTuple>(Array), "invalid macro list", &N, Array);
     for (Metadata *Op : N.getMacros()->operands()) {
-      AssertDI(Op && isa<DIMacroNode>(Op), "invalid macro ref", &N, Op);
+      AssertDI(isa_and_nonnull<DIMacroNode>(Op), "invalid macro ref", &N, Op);
     }
   }
   CUVisited.insert(&N);
@@ -1128,8 +1129,8 @@ void Verifier::visitDISubprogram(const DISubprogram &N) {
     auto *ThrownTypes = dyn_cast<MDTuple>(RawThrownTypes);
     AssertDI(ThrownTypes, "invalid thrown types list", &N, RawThrownTypes);
     for (Metadata *Op : ThrownTypes->operands())
-      AssertDI(Op && isa<DIType>(Op), "invalid thrown type", &N, ThrownTypes,
-               Op);
+      AssertDI(isa_and_nonnull<DIType>(Op), "invalid thrown type", &N,
+               ThrownTypes, Op);
   }
 
   if (N.areAllCallsDescribed())
@@ -1181,7 +1182,7 @@ void Verifier::visitDIMacroFile(const DIMacroFile &N) {
   if (auto *Array = N.getRawElements()) {
     AssertDI(isa<MDTuple>(Array), "invalid macro list", &N, Array);
     for (Metadata *Op : N.getElements()->operands()) {
-      AssertDI(Op && isa<DIMacroNode>(Op), "invalid macro ref", &N, Op);
+      AssertDI(isa_and_nonnull<DIMacroNode>(Op), "invalid macro ref", &N, Op);
     }
   }
 }
@@ -2306,7 +2307,7 @@ void Verifier::visitFunction(const Function &F) {
         continue;
 
       Metadata *Parent = DL->getRawScope();
-      AssertDI(Parent && isa<DILocalScope>(Parent),
+      AssertDI(isa_and_nonnull<DILocalScope>(Parent),
                "DILocation's scope must be a DILocalScope", N, &F, &I, DL,
                Parent);
       DILocalScope *Scope = DL->getInlinedAtScope();

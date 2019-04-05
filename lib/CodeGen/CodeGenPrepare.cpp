@@ -3755,7 +3755,7 @@ bool TypePromotionHelper::canGetThrough(const Instruction *Inst,
   // We can get through binary operator, if it is legal. In other words, the
   // binary operator must have a nuw or nsw flag.
   const BinaryOperator *BinOp = dyn_cast<BinaryOperator>(Inst);
-  if (BinOp && isa<OverflowingBinaryOperator>(BinOp) &&
+  if (isa_and_nonnull<OverflowingBinaryOperator>(BinOp) &&
       ((!IsSExt && BinOp->hasNoUnsignedWrap()) ||
        (IsSExt && BinOp->hasNoSignedWrap())))
     return true;

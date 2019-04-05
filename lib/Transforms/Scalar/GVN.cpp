@@ -1819,7 +1819,7 @@ bool GVN::propagateEquality(Value *LHS, Value *RHS, const BasicBlockEdge &Root,
       // looking for an instruction realizing it: there cannot be one!
       if (Num < NextNum) {
         Value *NotCmp = findLeader(Root.getEnd(), Num);
-        if (NotCmp && isa<Instruction>(NotCmp)) {
+        if (isa_and_nonnull<Instruction>(NotCmp)) {
           unsigned NumReplacements =
               DominatesByEdge
                   ? replaceDominatedUsesWith(NotCmp, NotVal, *DT, Root)

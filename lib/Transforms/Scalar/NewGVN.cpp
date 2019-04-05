@@ -951,7 +951,7 @@ static bool isCopyOfPHI(const Value *V, const PHINode *PN) {
 
 static bool isCopyOfAPHI(const Value *V) {
   auto *CO = getCopyOf(V);
-  return CO && isa<PHINode>(CO);
+  return isa_and_nonnull<PHINode>(CO);
 }
 
 // Sort PHI Operands into a canonical order.  What we use here is an RPO
@@ -2434,7 +2434,7 @@ void NewGVN::performCongruenceFinding(Instruction *I, const Expression *E) {
     auto *OldE = ValueToExpression.lookup(I);
     // It could just be that the old class died. We don't want to erase it if we
     // just moved classes.
-    if (OldE && isa<StoreExpression>(OldE) && *E != *OldE) {
+    if (isa_and_nonnull<StoreExpression>(OldE) && *E != *OldE) {
       // Erase this as an exact expression to ensure we don't erase expressions
       // equivalent to it.
       auto Iter = ExpressionToClass.find_as(ExactEqualsExpression(*OldE));
@@ -2529,7 +2529,7 @@ void NewGVN::processOutgoingEdges(Instruction *TI, BasicBlock *B) {
     Value *SwitchCond = SI->getCondition();
     Value *CondEvaluated = findConditionEquivalence(SwitchCond);
     // See if we were able to turn this switch statement into a constant.
-    if (CondEvaluated && isa<ConstantInt>(CondEvaluated)) {
+    if (isa_and_nonnull<ConstantInt>(CondEvaluated)) {
       auto *CondVal = cast<ConstantInt>(CondEvaluated);
       // We should be able to get case value for this.
       auto Case = *SI->findCaseValue(CondVal);
@@ -3907,7 +3907,7 @@ bool NewGVN::eliminateInstructions(Function &F) {
     if (CC == TOPClass) {
       for (auto M : *CC) {
         auto *VTE = ValueToExpression.lookup(M);
-        if (VTE && isa<DeadExpression>(VTE))
+        if (isa_and_nonnull<DeadExpression>(VTE))
           markInstructionForDeletion(cast<Instruction>(M));
         assert((!ReachableBlocks.count(cast<Instruction>(M)->getParent()) ||
                 InstructionsToErase.count(cast<Instruction>(M))) &&

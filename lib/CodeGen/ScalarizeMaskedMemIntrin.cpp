@@ -84,7 +84,7 @@ static bool isConstantIntVector(Value *Mask) {
   unsigned NumElts = Mask->getType()->getVectorNumElements();
   for (unsigned i = 0; i != NumElts; ++i) {
     Constant *CElt = C->getAggregateElement(i);
-    if (!CElt || !isa<ConstantInt>(CElt))
+    if (!isa_and_nonnull<ConstantInt>(CElt))
       return false;
   }
 

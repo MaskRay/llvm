@@ -712,7 +712,7 @@ void MDNode::handleChangedOperand(void *Ref, Metadata *New) {
   setOperand(Op, New);
 
   // Drop uniquing for self-reference cycles and deleted constants.
-  if (New == this || (!New && Old && isa<ConstantAsMetadata>(Old))) {
+  if (New == this || (!New && isa_and_nonnull<ConstantAsMetadata>(Old))) {
     if (!isResolved())
       resolve();
     storeDistinctInContext();

@@ -109,7 +109,7 @@ const DILocation *DILocation::getMergedLocation(const DILocation *LocA,
 
   // If the two locations are irreconsilable, just pick one. This is misleading,
   // but on the other hand, it's a "line 0" location.
-  if (!S || !isa<DILocalScope>(S))
+  if (!isa_and_nonnull<DILocalScope>(S))
     S = LocA->getScope();
   return DILocation::get(Result->getContext(), 0, 0, S, L);
 }

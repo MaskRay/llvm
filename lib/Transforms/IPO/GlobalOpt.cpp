@@ -328,7 +328,7 @@ static bool CleanupConstantGlobalUsers(Value *V, Constant *Init,
         // If the initializer is an all-null value and we have an inbounds GEP,
         // we already know what the result of any load from that GEP is.
         // TODO: Handle splats.
-        if (Init && isa<ConstantAggregateZero>(Init) && GEP->isInBounds())
+        if (isa_and_nonnull<ConstantAggregateZero>(Init) && GEP->isInBounds())
           SubInit = Constant::getNullValue(GEP->getResultElementType());
       }
       Changed |= CleanupConstantGlobalUsers(GEP, SubInit, DL, TLI);

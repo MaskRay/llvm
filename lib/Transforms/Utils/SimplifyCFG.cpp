@@ -1648,7 +1648,8 @@ namespace {
       Insts.clear();
       for (auto *BB : Blocks) {
         Instruction *Inst = BB->getTerminator();
-        for (Inst = Inst->getPrevNode(); Inst && isa<DbgInfoIntrinsic>(Inst);)
+        for (Inst = Inst->getPrevNode();
+             isa_and_nonnull<DbgInfoIntrinsic>(Inst);)
           Inst = Inst->getPrevNode();
         if (!Inst) {
           // Block wasn't big enough.
@@ -1667,7 +1668,8 @@ namespace {
       if (Fail)
         return;
       for (auto *&Inst : Insts) {
-        for (Inst = Inst->getPrevNode(); Inst && isa<DbgInfoIntrinsic>(Inst);)
+        for (Inst = Inst->getPrevNode();
+             isa_and_nonnull<DbgInfoIntrinsic>(Inst);)
           Inst = Inst->getPrevNode();
         // Already at beginning of block.
         if (!Inst) {

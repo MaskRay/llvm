@@ -288,7 +288,7 @@ struct CustomMappingTraits {
 ///        return poly->getKind();
 ///      }
 ///      static MyScalar& getAsScalar(MyPoly &poly) {
-///        if (!poly || !isa<MyScalar>(poly))
+///        if (!isa_and_nonnull<MyScalar>(poly))
 ///          poly.reset(new MyScalar());
 ///        return *cast<MyScalar>(poly.get());
 ///      }

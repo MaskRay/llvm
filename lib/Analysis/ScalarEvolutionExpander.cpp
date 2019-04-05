@@ -1708,8 +1708,8 @@ SCEVExpander::FindValueInExprValueMap(const SCEV *S,
         Value *V = VOPair.first;
         ConstantInt *Offset = VOPair.second;
         Instruction *EntInst = nullptr;
-        if (V && isa<Instruction>(V) && (EntInst = cast<Instruction>(V)) &&
-            S->getType() == V->getType() &&
+        if (isa_and_nonnull<Instruction>(V) &&
+            (EntInst = cast<Instruction>(V)) && S->getType() == V->getType() &&
             EntInst->getFunction() == InsertPt->getFunction() &&
             SE.DT.dominates(EntInst, InsertPt) &&
             (SE.LI.getLoopFor(EntInst->getParent()) == nullptr ||

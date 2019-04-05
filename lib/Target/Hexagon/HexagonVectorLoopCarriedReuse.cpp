@@ -587,7 +587,7 @@ void HexagonVectorLoopCarriedReuse::findDepChainFromPHI(Instruction *I,
 
     Value *PreHdrVal =
       PN->getIncomingValueForBlock(CurLoop->getLoopPreheader());
-    if(!PreHdrVal || !isa<Instruction>(PreHdrVal)) {
+    if (!isa_and_nonnull<Instruction>(PreHdrVal)) {
       D.clear();
       return;
     }

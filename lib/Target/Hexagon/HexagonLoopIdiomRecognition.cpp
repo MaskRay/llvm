@@ -1816,7 +1816,8 @@ bool PolynomialMultiplyRecognize::recognize() {
 
     Simplifier::Context C(SI);
     Value *T = PreSimp.simplify(C);
-    SelectInst *SelI = (T && isa<SelectInst>(T)) ? cast<SelectInst>(T) : SI;
+    SelectInst *SelI =
+        (isa_and_nonnull<SelectInst>(T)) ? cast<SelectInst>(T) : SI;
     LLVM_DEBUG(dbgs() << "scanSelect(pre-scan): " << PE(C, SelI) << '\n');
     if (scanSelect(SelI, LoopB, EntryB, CIV, PV, true)) {
       FoundPreScan = true;

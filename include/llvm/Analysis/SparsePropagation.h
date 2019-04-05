@@ -318,7 +318,7 @@ void SparseSolver<LatticeKey, LatticeVal, KeyInfo>::getFeasibleSuccessors(
     Constant *C =
         dyn_cast_or_null<Constant>(LatticeFunc->GetValueFromLatticeVal(
             std::move(BCValue), BI->getCondition()->getType()));
-    if (!C || !isa<ConstantInt>(C)) {
+    if (!isa_and_nonnull<ConstantInt>(C)) {
       // Non-constant values can go either way.
       Succs[0] = Succs[1] = true;
       return;
@@ -356,7 +356,7 @@ void SparseSolver<LatticeKey, LatticeVal, KeyInfo>::getFeasibleSuccessors(
 
   Constant *C = dyn_cast_or_null<Constant>(LatticeFunc->GetValueFromLatticeVal(
       std::move(SCValue), SI.getCondition()->getType()));
-  if (!C || !isa<ConstantInt>(C)) {
+  if (!isa_and_nonnull<ConstantInt>(C)) {
     // All destinations are executable!
     Succs.assign(TI.getNumSuccessors(), true);
     return;
