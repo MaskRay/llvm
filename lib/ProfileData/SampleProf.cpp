@@ -16,11 +16,11 @@
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/raw_ostream.h"
 #include <string>
-#include <system_error>
 
 using namespace llvm;
 using namespace sampleprof;
@@ -31,54 +31,70 @@ SampleProfileFormat FunctionSamples::Format;
 DenseMap<uint64_t, StringRef> FunctionSamples::GUIDToFuncNameMap;
 Module *FunctionSamples::CurrentModule;
 } // namespace sampleprof
-} // namespace llvm
 
 namespace {
 
-// FIXME: This class is only here to support the transition to llvm::Error. It
-// will be removed once this transition is complete. Clients should prefer to
-// deal with the Error value directly, rather than converting to error_code.
-class SampleProfErrorCategoryType : public std::error_category {
-  const char *name() const noexcept override { return "llvm.sampleprof"; }
+class SampleProfError : public ErrorInfo<SampleProfError> {
+public:
+  static char ID;
 
-  std::string message(int IE) const override {
-    sampleprof_error E = static_cast<sampleprof_error>(IE);
+  SampleProfError(sampleprof_error E) : E(E) {}
+
+  void log(raw_ostream &OS) const override {
     switch (E) {
     case sampleprof_error::success:
-      return "Success";
+      OS << "Success";
+      break;
     case sampleprof_error::bad_magic:
-      return "Invalid sample profile data (bad magic)";
+      OS << "Invalid sample profile data (bad magic)";
+      break;
     case sampleprof_error::unsupported_version:
-      return "Unsupported sample profile format version";
+      OS << "Unsupported sample profile format version";
+      break;
     case sampleprof_error::too_large:
-      return "Too much profile data";
+      OS << "Too much profile data";
+      break;
     case sampleprof_error::truncated:
-      return "Truncated profile data";
+      OS << "Truncated profile data";
+      break;
     case sampleprof_error::malformed:
-      return "Malformed sample profile data";
+      OS << "Malformed sample profile data";
+      break;
     case sampleprof_error::unrecognized_format:
-      return "Unrecognized sample profile encoding format";
+      OS << "Unrecognized sample profile encoding format";
+      break;
     case sampleprof_error::unsupported_writing_format:
-      return "Profile encoding format unsupported for writing operations";
+      OS << "Profile encoding format unsupported for writing operations";
+      break;
     case sampleprof_error::truncated_name_table:
-      return "Truncated function name table";
+      OS << "Truncated function name table";
+      break;
     case sampleprof_error::not_implemented:
-      return "Unimplemented feature";
+      OS << "Unimplemented feature";
+      break;
     case sampleprof_error::counter_overflow:
-      return "Counter overflow";
+      OS << "Counter overflow";
+      break;
     case sampleprof_error::ostream_seek_unsupported:
-      return "Ostream does not support seek";
+      OS << "Ostream does not support seek";
+      break;
     }
-    llvm_unreachable("A value of sampleprof_error has no message.");
   }
+
+  std::error_code convertToErrorCode() const override {
+    llvm_unreachable("Not implemented");
+  }
+
+private:
+  sampleprof_error E;
 };
+
+char SampleProfError::ID = 0;
 
 } // end anonymous namespace
 
-static ManagedStatic<SampleProfErrorCategoryType> ErrorCategory;
-
-const std::error_category &llvm::sampleprof_category() {
-  return *ErrorCategory;
+Error createSampleProfError(sampleprof_error E) {
+  return Error(llvm::make_unique<SampleProfError>(E));
 }
 
 void LineLocation::print(raw_ostream &OS) const {
@@ -190,3 +206,4 @@ FunctionSamples::findFunctionSamples(const DILocation *DIL) const {
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 LLVM_DUMP_METHOD void FunctionSamples::dump() const { print(dbgs(), 0); }
 #endif
+} // namespace llvm

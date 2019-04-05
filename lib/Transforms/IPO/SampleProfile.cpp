@@ -1557,14 +1557,15 @@ INITIALIZE_PASS_END(SampleProfileLoaderLegacyPass, "sample-profile",
 bool SampleProfileLoader::doInitialization(Module &M) {
   auto &Ctx = M.getContext();
   auto ReaderOrErr = SampleProfileReader::create(Filename, Ctx);
-  if (std::error_code EC = ReaderOrErr.getError()) {
-    std::string Msg = "Could not open profile: " + EC.message();
+  if (!ReaderOrErr) {
+    std::string Msg =
+        "Could not open profile: " + toString(ReaderOrErr.takeError());
     Ctx.diagnose(DiagnosticInfoSampleProfile(Filename, Msg));
     return false;
   }
   Reader = std::move(ReaderOrErr.get());
   Reader->collectFuncsToUse(M);
-  ProfileIsValid = (Reader->read() == sampleprof_error::success);
+  ProfileIsValid = !Reader->read();
 
   if (!RemappingFilename.empty()) {
     // Apply profile remappings to the loaded profile data if requested.
@@ -1572,13 +1573,14 @@ bool SampleProfileLoader::doInitialization(Module &M) {
     // C++ ABI's name mangling scheme.
     ReaderOrErr = SampleProfileReaderItaniumRemapper::create(
         RemappingFilename, Ctx, std::move(Reader));
-    if (std::error_code EC = ReaderOrErr.getError()) {
-      std::string Msg = "Could not open profile remapping file: " + EC.message();
+    if (!ReaderOrErr) {
+      std::string Msg = "Could not open profile remapping file: " +
+                        toString(ReaderOrErr.takeError());
       Ctx.diagnose(DiagnosticInfoSampleProfile(Filename, Msg));
       return false;
     }
     Reader = std::move(ReaderOrErr.get());
-    ProfileIsValid = (Reader->read() == sampleprof_error::success);
+    ProfileIsValid = !Reader->read();
   }
   return true;
 }

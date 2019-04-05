@@ -28,14 +28,11 @@
 #include <cstdint>
 #include <map>
 #include <string>
-#include <system_error>
 #include <utility>
 
 namespace llvm {
 
 class raw_ostream;
-
-const std::error_category &sampleprof_category();
 
 enum class sampleprof_error {
   success = 0,
@@ -52,9 +49,7 @@ enum class sampleprof_error {
   ostream_seek_unsupported
 };
 
-inline std::error_code make_error_code(sampleprof_error E) {
-  return std::error_code(static_cast<int>(E), sampleprof_category());
-}
+Error createSampleProfError(sampleprof_error E);
 
 inline sampleprof_error MergeResult(sampleprof_error &Accumulator,
                                     sampleprof_error Result) {

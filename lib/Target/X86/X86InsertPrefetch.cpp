@@ -158,16 +158,21 @@ bool X86InsertPrefetch::doInitialization(Module &M) {
     return false;
 
   LLVMContext &Ctx = M.getContext();
-  ErrorOr<std::unique_ptr<SampleProfileReader>> ReaderOrErr =
+  Expected<std::unique_ptr<SampleProfileReader>> ReaderOrErr =
       SampleProfileReader::create(Filename, Ctx);
-  if (std::error_code EC = ReaderOrErr.getError()) {
-    std::string Msg = "Could not open profile: " + EC.message();
+  if (!ReaderOrErr) {
+    std::string Msg =
+        "Could not open profile: " + toString(ReaderOrErr.takeError());
     Ctx.diagnose(DiagnosticInfoSampleProfile(Filename, Msg,
                                              DiagnosticSeverity::DS_Warning));
     return false;
   }
   Reader = std::move(ReaderOrErr.get());
-  Reader->read();
+  if (Error E = Reader->read()) {
+    Ctx.diagnose(DiagnosticInfoSampleProfile(Filename, toString(std::move(E)),
+                                             DiagnosticSeverity::DS_Warning));
+    return false;
+  }
   return true;
 }
 

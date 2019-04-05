@@ -219,7 +219,6 @@
 #include "llvm/ProfileData/GCOV.h"
 #include "llvm/ProfileData/SampleProf.h"
 #include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SymbolRemappingReader.h"
 #include <algorithm>
@@ -271,10 +270,10 @@ public:
   virtual ~SampleProfileReader() = default;
 
   /// Read and validate the file header.
-  virtual std::error_code readHeader() = 0;
+  virtual Error readHeader() = 0;
 
   /// Read sample profiles from the associated file.
-  virtual std::error_code read() = 0;
+  virtual Error read() = 0;
 
   /// Print the profile for \p FName on stream \p OS.
   void dumpFunctionProfile(StringRef FName, raw_ostream &OS = dbgs());
@@ -312,12 +311,19 @@ public:
                                              LineNumber, Msg));
   }
 
+  void reportError(int64_t LineNumber, const Error &E) const {
+    std::string Message;
+    raw_string_ostream OS(Message);
+    OS << E;
+    reportError(LineNumber, OS.str());
+  }
+
   /// Create a sample profile reader appropriate to the file format.
-  static ErrorOr<std::unique_ptr<SampleProfileReader>>
+  static Expected<std::unique_ptr<SampleProfileReader>>
   create(const Twine &Filename, LLVMContext &C);
 
   /// Create a sample profile reader from the supplied memory buffer.
-  static ErrorOr<std::unique_ptr<SampleProfileReader>>
+  static Expected<std::unique_ptr<SampleProfileReader>>
   create(std::unique_ptr<MemoryBuffer> &B, LLVMContext &C);
 
   /// Return the profile summary.
@@ -362,10 +368,10 @@ public:
       : SampleProfileReader(std::move(B), C, SPF_Text) {}
 
   /// Read and validate the file header.
-  std::error_code readHeader() override { return sampleprof_error::success; }
+  Error readHeader() override { return Error::success(); }
 
   /// Read sample profiles from the associated file.
-  std::error_code read() override;
+  Error read() override;
 
   /// Return true if \p Buffer is in the format supported by this class.
   static bool hasFormat(const MemoryBuffer &Buffer);
@@ -378,10 +384,10 @@ public:
       : SampleProfileReader(std::move(B), C, Format) {}
 
   /// Read and validate the file header.
-  virtual std::error_code readHeader() override;
+  virtual Error readHeader() override;
 
   /// Read sample profiles from the associated file.
-  std::error_code read() override;
+  Error read() override;
 
 protected:
   /// Read a numeric value of type T from the profile.
@@ -390,11 +396,11 @@ protected:
   /// EC is set.
   ///
   /// \returns the read value.
-  template <typename T> ErrorOr<T> readNumber();
+  template <typename T> Expected<T> readNumber();
 
   /// Read a numeric value of type T from the profile. The value is saved
   /// without encoded.
-  template <typename T> ErrorOr<T> readUnencodedNumber();
+  template <typename T> Expected<T> readUnencodedNumber();
 
   /// Read a string from the profile.
   ///
@@ -402,19 +408,19 @@ protected:
   /// EC is set.
   ///
   /// \returns the read value.
-  ErrorOr<StringRef> readString();
+  Expected<StringRef> readString();
 
   /// Read the string index and check whether it overflows the table.
-  template <typename T> inline ErrorOr<uint32_t> readStringIndex(T &Table);
+  template <typename T> inline Expected<uint32_t> readStringIndex(T &Table);
 
   /// Return true if we've reached the end of file.
   bool at_eof() const { return Data >= End; }
 
   /// Read the next function profile instance.
-  std::error_code readFuncProfile();
+  Error readFuncProfile();
 
   /// Read the contents of the given profile instance.
-  std::error_code readProfile(FunctionSamples &FProfile);
+  Error readProfile(FunctionSamples &FProfile);
 
   /// Points to the current location in the buffer.
   const uint8_t *Data = nullptr;
@@ -423,27 +429,27 @@ protected:
   const uint8_t *End = nullptr;
 
 private:
-  std::error_code readSummaryEntry(std::vector<ProfileSummaryEntry> &Entries);
-  virtual std::error_code verifySPMagic(uint64_t Magic) = 0;
+  Error readSummaryEntry(std::vector<ProfileSummaryEntry> &Entries);
+  virtual Error verifySPMagic(uint64_t Magic) = 0;
 
   /// Read profile summary.
-  std::error_code readSummary();
+  Error readSummary();
 
   /// Read the whole name table.
-  virtual std::error_code readNameTable() = 0;
+  virtual Error readNameTable() = 0;
 
   /// Read a string indirectly via the name table.
-  virtual ErrorOr<StringRef> readStringFromTable() = 0;
+  virtual Expected<StringRef> readStringFromTable() = 0;
 };
 
 class SampleProfileReaderRawBinary : public SampleProfileReaderBinary {
 private:
   /// Function name table.
   std::vector<StringRef> NameTable;
-  virtual std::error_code verifySPMagic(uint64_t Magic) override;
-  virtual std::error_code readNameTable() override;
+  virtual Error verifySPMagic(uint64_t Magic) override;
+  virtual Error readNameTable() override;
   /// Read a string indirectly via the name table.
-  virtual ErrorOr<StringRef> readStringFromTable() override;
+  virtual Expected<StringRef> readStringFromTable() override;
 
 public:
   SampleProfileReaderRawBinary(std::unique_ptr<MemoryBuffer> B, LLVMContext &C)
@@ -462,12 +468,12 @@ private:
   DenseMap<StringRef, uint64_t> FuncOffsetTable;
   /// The set containing the functions to use when compiling a module.
   DenseSet<StringRef> FuncsToUse;
-  virtual std::error_code verifySPMagic(uint64_t Magic) override;
-  virtual std::error_code readNameTable() override;
+  virtual Error verifySPMagic(uint64_t Magic) override;
+  virtual Error readNameTable() override;
   /// Read a string indirectly via the name table.
-  virtual ErrorOr<StringRef> readStringFromTable() override;
-  virtual std::error_code readHeader() override;
-  std::error_code readFuncOffsetTable();
+  virtual Expected<StringRef> readStringFromTable() override;
+  virtual Error readHeader() override;
+  Error readFuncOffsetTable();
 
 public:
   SampleProfileReaderCompactBinary(std::unique_ptr<MemoryBuffer> B,
@@ -478,7 +484,7 @@ public:
   static bool hasFormat(const MemoryBuffer &Buffer);
 
   /// Read samples only for functions to use.
-  std::error_code read() override;
+  Error read() override;
 
   /// Collect functions to be used when compiling Module \p M.
   void collectFuncsToUse(const Module &M) override;
@@ -506,25 +512,25 @@ public:
         GcovBuffer(Buffer.get()) {}
 
   /// Read and validate the file header.
-  std::error_code readHeader() override;
+  Error readHeader() override;
 
   /// Read sample profiles from the associated file.
-  std::error_code read() override;
+  Error read() override;
 
   /// Return true if \p Buffer is in the format supported by this class.
   static bool hasFormat(const MemoryBuffer &Buffer);
 
 protected:
-  std::error_code readNameTable();
-  std::error_code readOneFunctionProfile(const InlineCallStack &InlineStack,
-                                         bool Update, uint32_t Offset);
-  std::error_code readFunctionProfiles();
-  std::error_code skipNextWord();
-  template <typename T> ErrorOr<T> readNumber();
-  ErrorOr<StringRef> readString();
+  Error readNameTable();
+  Error readOneFunctionProfile(const InlineCallStack &InlineStack, bool Update,
+                               uint32_t Offset);
+  Error readFunctionProfiles();
+  Error skipNextWord();
+  template <typename T> Expected<T> readNumber();
+  Expected<StringRef> readString();
 
   /// Read the section tag and check that it's the same as \p Expected.
-  std::error_code readSectionTag(uint32_t Expected);
+  Error readSectionTag(uint32_t Expected);
 
   /// GCOV buffer containing the profile.
   GCOVBuffer GcovBuffer;
@@ -555,15 +561,15 @@ public:
 
   /// Create a remapped sample profile from the given remapping file and
   /// underlying samples.
-  static ErrorOr<std::unique_ptr<SampleProfileReader>>
+  static Expected<std::unique_ptr<SampleProfileReader>>
   create(const Twine &Filename, LLVMContext &C,
          std::unique_ptr<SampleProfileReader> Underlying);
 
   /// Read and validate the file header.
-  std::error_code readHeader() override { return sampleprof_error::success; }
+  Error readHeader() override { return Error::success(); }
 
   /// Read remapping file and apply it to the sample profile.
-  std::error_code read() override;
+  Error read() override;
 
   /// Return the samples collected for function \p F.
   FunctionSamples *getSamplesFor(StringRef FunctionName) override;

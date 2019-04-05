@@ -28,8 +28,21 @@ using namespace sampleprof;
 static ::testing::AssertionResult NoError(std::error_code EC) {
   if (!EC)
     return ::testing::AssertionSuccess();
-  return ::testing::AssertionFailure() << "error " << EC.value() << ": "
-                                       << EC.message();
+  return ::testing::AssertionFailure()
+         << "error " << EC.value() << ": " << EC.message();
+}
+
+static ::testing::AssertionResult NoError(Error E) {
+  if (!E)
+    return ::testing::AssertionSuccess();
+  return ::testing::AssertionFailure() << "error " << toString(std::move(E));
+}
+
+template <typename T>
+static ::testing::AssertionResult NoError(Expected<T> &EC) {
+  if (EC)
+    return ::testing::AssertionSuccess();
+  return ::testing::AssertionFailure() << "error " << toString(EC.takeError());
 }
 
 namespace {
@@ -46,13 +59,13 @@ struct SampleProfTest : ::testing::Test {
     std::unique_ptr<raw_ostream> OS(
         new raw_fd_ostream(Profile, EC, sys::fs::F_None));
     auto WriterOrErr = SampleProfileWriter::create(OS, Format);
-    ASSERT_TRUE(NoError(WriterOrErr.getError()));
+    ASSERT_TRUE(NoError(WriterOrErr));
     Writer = std::move(WriterOrErr.get());
   }
 
   void readProfile(const Module &M, StringRef Profile) {
     auto ReaderOrErr = SampleProfileReader::create(Profile, Context);
-    ASSERT_TRUE(NoError(ReaderOrErr.getError()));
+    ASSERT_TRUE(NoError(ReaderOrErr));
     Reader = std::move(ReaderOrErr.get());
     Reader->collectFuncsToUse(M);
   }
@@ -96,16 +109,13 @@ struct SampleProfTest : ::testing::Test {
     Profiles[FooName] = std::move(FooSamples);
     Profiles[BarName] = std::move(BarSamples);
 
-    std::error_code EC;
-    EC = Writer->write(Profiles);
-    ASSERT_TRUE(NoError(EC));
+    ASSERT_TRUE(NoError(Writer->write(Profiles)));
 
     Writer->getOutputStream().flush();
 
     readProfile(M, Profile);
 
-    EC = Reader->read();
-    ASSERT_TRUE(NoError(EC));
+    ASSERT_TRUE(NoError(Reader->read()));
 
     if (Remap) {
       auto MemBuffer = llvm::MemoryBuffer::getMemBuffer(R"(
@@ -119,8 +129,7 @@ struct SampleProfTest : ::testing::Test {
       FooName = "_Z4fauxi";
       BarName = "_Z3barl";
 
-      EC = Reader->read();
-      ASSERT_TRUE(NoError(EC));
+      ASSERT_TRUE(NoError(Reader->read()));
     }
 
     ASSERT_EQ(2u, Reader->getProfiles().size());
@@ -254,14 +263,12 @@ struct SampleProfTest : ::testing::Test {
 
     // write profile
     createWriter(Format, ProfileFile);
-    EC = Writer->write(ProfMap);
-    ASSERT_TRUE(NoError(EC));
+    ASSERT_TRUE(NoError(Writer->write(ProfMap)));
     Writer->getOutputStream().flush();
 
     // read profile
     readProfile(M, ProfileFile);
-    EC = Reader->read();
-    ASSERT_TRUE(NoError(EC));
+    ASSERT_TRUE(NoError(Reader->read()));
 
     for (auto I = Expected.begin(); I != Expected.end(); ++I) {
       uint64_t Esamples = uint64_t(-1);

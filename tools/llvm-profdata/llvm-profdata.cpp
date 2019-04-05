@@ -409,8 +409,8 @@ static void mergeSampleProfile(const WeightedFileVector &Inputs,
   using namespace sampleprof;
   auto WriterOrErr =
       SampleProfileWriter::create(OutputFilename, FormatMap[OutputFormat]);
-  if (std::error_code EC = WriterOrErr.getError())
-    exitWithErrorCode(EC, OutputFilename);
+  if (!WriterOrErr)
+    exitWithError(WriterOrErr.takeError(), OutputFilename);
 
   auto Writer = std::move(WriterOrErr.get());
   StringMap<FunctionSamples> ProfileMap;
@@ -418,8 +418,8 @@ static void mergeSampleProfile(const WeightedFileVector &Inputs,
   LLVMContext Context;
   for (const auto &Input : Inputs) {
     auto ReaderOrErr = SampleProfileReader::create(Input.Filename, Context);
-    if (std::error_code EC = ReaderOrErr.getError())
-      exitWithErrorCode(EC, Input.Filename);
+    if (!ReaderOrErr)
+      exitWithError(ReaderOrErr.takeError(), Input.Filename);
 
     // We need to keep the readers around until after all the files are
     // read so that we do not lose the function names stored in each
@@ -427,8 +427,8 @@ static void mergeSampleProfile(const WeightedFileVector &Inputs,
     // merged profile map.
     Readers.push_back(std::move(ReaderOrErr.get()));
     const auto Reader = Readers.back().get();
-    if (std::error_code EC = Reader->read())
-      exitWithErrorCode(EC, Input.Filename);
+    if (Error E = Reader->read())
+      exitWithError(std::move(E), Input.Filename);
 
     StringMap<FunctionSamples> &Profiles = Reader->getProfiles();
     for (StringMap<FunctionSamples>::iterator I = Profiles.begin(),
@@ -441,13 +441,13 @@ static void mergeSampleProfile(const WeightedFileVector &Inputs,
       FunctionSamples &Samples = Remapper ? Remapped : I->second;
       StringRef FName = Samples.getName();
       MergeResult(Result, ProfileMap[FName].merge(Samples, Input.Weight));
-      if (Result != sampleprof_error::success) {
-        std::error_code EC = make_error_code(Result);
-        handleMergeWriterError(errorCodeToError(EC), Input.Filename, FName);
-      }
+      if (Result != sampleprof_error::success)
+        handleMergeWriterError(createSampleProfError(Result), Input.Filename,
+                               FName);
     }
   }
-  Writer->write(ProfileMap);
+  if (Error E = Writer->write(ProfileMap))
+    exitWithError(std::move(E));
 }
 
 static WeightedFile parseWeightedFile(const StringRef &WeightedFilename) {
@@ -866,12 +866,12 @@ static int showSampleProfile(const std::string &Filename, bool ShowCounts,
   using namespace sampleprof;
   LLVMContext Context;
   auto ReaderOrErr = SampleProfileReader::create(Filename, Context);
-  if (std::error_code EC = ReaderOrErr.getError())
-    exitWithErrorCode(EC, Filename);
+  if (!ReaderOrErr)
+    exitWithError(ReaderOrErr.takeError(), Filename);
 
   auto Reader = std::move(ReaderOrErr.get());
-  if (std::error_code EC = Reader->read())
-    exitWithErrorCode(EC, Filename);
+  if (Error E = Reader->read())
+    exitWithError(std::move(E), Filename);
 
   if (ShowAllFunctions || ShowFunction.empty())
     Reader->dump(OS);
