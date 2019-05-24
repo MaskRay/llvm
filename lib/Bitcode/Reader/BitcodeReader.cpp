@@ -2983,6 +2983,9 @@ Error BitcodeReader::parseGlobalVarRecord(ArrayRef<uint64_t> Record) {
   }
   inferDSOLocal(NewGV);
 
+  if (Record.size() > 15)
+    NewGV->setPartition(StringRef(Strtab.data() + Record[14], Record[15]));
+
   return Error::success();
 }
 
@@ -3072,6 +3075,9 @@ Error BitcodeReader::parseFunctionRecord(ArrayRef<uint64_t> Record) {
   }
   inferDSOLocal(Func);
 
+  if (Record.size() > 18)
+    Func->setPartition(StringRef(Strtab.data() + Record[17], Record[18]));
+
   ValueList.push_back(Func);
 
   // If this is a function with a body, remember the prototype we are
@@ -3148,6 +3154,12 @@ Error BitcodeReader::parseGlobalIndirectSymbolRecord(
   if (OpNum != Record.size())
     NewGA->setDSOLocal(getDecodedDSOLocal(Record[OpNum++]));
   inferDSOLocal(NewGA);
+
+  if (OpNum + 1 < Record.size()) {
+    NewGA->setPartition(
+        StringRef(Strtab.data() + Record[OpNum], Record[OpNum + 1]));
+    OpNum += 2;
+  }
 
   ValueList.push_back(NewGA);
   IndirectSymbolInits.push_back(std::make_pair(NewGA, Val));

@@ -960,6 +960,19 @@ bool LLParser::parseIndirectSymbol(const std::string &Name, LocTy NameLoc,
   GA->setUnnamedAddr(UnnamedAddr);
   maybeSetDSOLocal(DSOLocal, *GA);
 
+  while (Lex.getKind() == lltok::comma) {
+    Lex.Lex();
+
+    if (Lex.getKind() == lltok::kw_partition) {
+      Lex.Lex();
+      GA->setPartition(Lex.getStrVal());
+      if (ParseToken(lltok::StringConstant, "expected partition string"))
+        return true;
+    } else {
+      return TokError("unknown alias or ifunc property!");
+    }
+  }
+
   if (Name.empty())
     NumberedVals.push_back(GA.get());
 
@@ -1094,6 +1107,11 @@ bool LLParser::ParseGlobal(const std::string &Name, LocTy NameLoc,
       Lex.Lex();
       GV->setSection(Lex.getStrVal());
       if (ParseToken(lltok::StringConstant, "expected global section string"))
+        return true;
+    } else if (Lex.getKind() == lltok::kw_partition) {
+      Lex.Lex();
+      GV->setPartition(Lex.getStrVal());
+      if (ParseToken(lltok::StringConstant, "expected partition string"))
         return true;
     } else if (Lex.getKind() == lltok::kw_align) {
       unsigned Alignment;
@@ -5287,6 +5305,7 @@ bool LLParser::ParseFunctionHeader(Function *&Fn, bool isDefine) {
   std::vector<unsigned> FwdRefAttrGrps;
   LocTy BuiltinLoc;
   std::string Section;
+  std::string Partition;
   unsigned Alignment;
   std::string GC;
   GlobalValue::UnnamedAddr UnnamedAddr = GlobalValue::UnnamedAddr::None;
@@ -5303,6 +5322,8 @@ bool LLParser::ParseFunctionHeader(Function *&Fn, bool isDefine) {
                                  BuiltinLoc) ||
       (EatIfPresent(lltok::kw_section) &&
        ParseStringConstant(Section)) ||
+      (EatIfPresent(lltok::kw_partition) &&
+       ParseStringConstant(Partition)) ||
       parseOptionalComdat(FunctionName, C) ||
       ParseOptionalAlignment(Alignment) ||
       (EatIfPresent(lltok::kw_gc) &&
@@ -5404,6 +5425,7 @@ bool LLParser::ParseFunctionHeader(Function *&Fn, bool isDefine) {
   Fn->setUnnamedAddr(UnnamedAddr);
   Fn->setAlignment(Alignment);
   Fn->setSection(Section);
+  Fn->setPartition(Partition);
   Fn->setComdat(C);
   Fn->setPersonalityFn(PersonalityFn);
   if (!GC.empty()) Fn->setGC(GC);

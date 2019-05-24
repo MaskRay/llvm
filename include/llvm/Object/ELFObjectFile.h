@@ -940,9 +940,8 @@ ELFObjectFile<ELFT>::create(MemoryBufferRef Object) {
   for (const Elf_Shdr &Sec : *SectionsOrErr) {
     switch (Sec.sh_type) {
     case ELF::SHT_DYNSYM: {
-      if (DotDynSymSec)
-        return createError("More than one dynamic symbol table!");
-      DotDynSymSec = &Sec;
+      if (!DotDynSymSec)
+        DotDynSymSec = &Sec;
       break;
     }
     case ELF::SHT_SYMTAB: {

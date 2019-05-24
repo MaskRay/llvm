@@ -1404,9 +1404,8 @@ ELFDumper<ELFT>::ELFDumper(const object::ELFObjectFile<ELFT> *ObjF,
       DotSymtabSec = &Sec;
       break;
     case ELF::SHT_DYNSYM:
-      if (DynSymRegion.Size)
-        reportError("Multiple SHT_DYNSYM");
-      DynSymRegion = createDRIFrom(&Sec);
+      if (!DynSymRegion.Size)
+        DynSymRegion = createDRIFrom(&Sec);
       // This is only used (if Elf_Shdr present)for naming section in GNU style
       DynSymtabName = unwrapOrError(Obj->getSectionName(&Sec));
       DynamicStringTable = unwrapOrError(Obj->getStringTableForSymtab(Sec));
@@ -1415,19 +1414,16 @@ ELFDumper<ELFT>::ELFDumper(const object::ELFObjectFile<ELFT> *ObjF,
       ShndxTable = unwrapOrError(Obj->getSHNDXTable(Sec));
       break;
     case ELF::SHT_GNU_versym:
-      if (SymbolVersionSection != nullptr)
-        reportError("Multiple SHT_GNU_versym");
-      SymbolVersionSection = &Sec;
+      if (!SymbolVersionSection)
+        SymbolVersionSection = &Sec;
       break;
     case ELF::SHT_GNU_verdef:
-      if (SymbolVersionDefSection != nullptr)
-        reportError("Multiple SHT_GNU_verdef");
-      SymbolVersionDefSection = &Sec;
+      if (!SymbolVersionDefSection)
+        SymbolVersionDefSection = &Sec;
       break;
     case ELF::SHT_GNU_verneed:
-      if (SymbolVersionNeedSection != nullptr)
-        reportError("Multiple SHT_GNU_verneed");
-      SymbolVersionNeedSection = &Sec;
+      if (!SymbolVersionNeedSection)
+        SymbolVersionNeedSection = &Sec;
       break;
     case ELF::SHT_LLVM_CALL_GRAPH_PROFILE:
       if (DotCGProfileSec != nullptr)
