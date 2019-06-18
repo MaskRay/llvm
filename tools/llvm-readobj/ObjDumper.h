@@ -104,8 +104,10 @@ public:
 
   virtual void printStackMap() const = 0;
 
-  void printSectionAsString(const object::ObjectFile *Obj, StringRef SecName);
-  void printSectionAsHex(const object::ObjectFile *Obj, StringRef SecName);
+  void printSectionAsString(const object::ObjectFile *Obj,
+                            const std::vector<std::string> &Sections);
+  void printSectionAsHex(const object::ObjectFile *Obj,
+                         const std::vector<std::string> &Sections);
 
 protected:
   ScopedPrinter &W;
