@@ -159,19 +159,17 @@ createRTDyldELFObject(MemoryBufferRef Buffer, const ObjectFile &SourceObject,
 
   // Iterate over all sections in the object.
   auto SI = SourceObject.section_begin();
-  for (const auto &Sec : Obj->sections()) {
+  for (object::SectionRef Sec : Obj->sections()) {
     StringRef SectionName;
     Sec.getName(SectionName);
-    if (SectionName != "") {
-      DataRefImpl ShdrRef = Sec.getRawDataRefImpl();
-      Elf_Shdr *shdr = const_cast<Elf_Shdr *>(
-          reinterpret_cast<const Elf_Shdr *>(ShdrRef.p));
+    DataRefImpl ShdrRef = Sec.getRawDataRefImpl();
+    Elf_Shdr *shdr =
+        const_cast<Elf_Shdr *>(reinterpret_cast<const Elf_Shdr *>(ShdrRef.p));
 
-      if (uint64_t SecLoadAddr = L.getSectionLoadAddress(*SI)) {
-        // This assumes that the address passed in matches the target address
-        // bitness. The template-based type cast handles everything else.
-        shdr->sh_addr = static_cast<addr_type>(SecLoadAddr);
-      }
+    if (uint64_t SecLoadAddr = L.getSectionLoadAddress(*SI)) {
+      // This assumes that the address passed in matches the target address
+      // bitness. The template-based type cast handles everything else.
+      shdr->sh_addr = static_cast<addr_type>(SecLoadAddr);
     }
     ++SI;
   }

@@ -1026,7 +1026,10 @@ section_iterator ELFObjectFile<ELFT>::section_begin() const {
   auto SectionsOrErr = EF.sections();
   if (!SectionsOrErr)
     return section_iterator(SectionRef());
-  return section_iterator(SectionRef(toDRI((*SectionsOrErr).begin()), this));
+  return section_iterator(
+      SectionRef(toDRI(SectionsOrErr->empty() ? SectionsOrErr->begin()
+                                              : SectionsOrErr->begin() + 1),
+                 this));
 }
 
 template <class ELFT>
