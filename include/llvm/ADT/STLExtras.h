@@ -1322,11 +1322,11 @@ void stable_sort(R &&Range, Compare C) {
   std::stable_sort(adl_begin(Range), adl_end(Range), C);
 }
 
-/// Binary search for the first iterator in a range where a predicate is true.
-/// Requires that C is always false below some limit, and always true above it.
+/// Binary search for the first iterator in a range where a predicate is false.
+/// Requires that C is always true below some limit, and always false above it.
 template <typename R, typename Predicate,
           typename Val = decltype(*adl_begin(std::declval<R>()))>
-auto bsearch(R &&Range, Predicate P) -> decltype(adl_begin(Range)) {
+auto partition_point(R &&Range, Predicate P) -> decltype(adl_begin(Range)) {
   return std::partition_point(adl_begin(Range), adl_end(Range),
                               [&](const Val &V) { return !P(V); });
 }
