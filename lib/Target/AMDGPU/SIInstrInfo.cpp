@@ -5071,8 +5071,8 @@ void SIInstrInfo::lowerScalarXnor(SetVectorType &Worklist,
                       RI.isSGPRClass(MRI.getRegClass(Src0.getReg()));
     bool Src1IsSGPR = Src1.isReg() &&
                       RI.isSGPRClass(MRI.getRegClass(Src1.getReg()));
-    MachineInstr *Not = nullptr;
-    MachineInstr *Xor = nullptr;
+    MachineInstr *Not;
+    MachineInstr *Xor;
     unsigned Temp = MRI.createVirtualRegister(&AMDGPU::SReg_32_XM0RegClass);
     unsigned NewDest = MRI.createVirtualRegister(&AMDGPU::SReg_32_XM0RegClass);
 
