@@ -367,7 +367,7 @@ SectionFilter ToolSectionFilter(object::ObjectFile const &O) {
 void error(std::error_code EC) {
   if (!EC)
     return;
-  WithColor::error(errs(), ToolName)
+  WithColor::error(errs())
       << "reading file: " << EC.message() << ".\n";
   errs().flush();
   exit(1);
@@ -376,12 +376,12 @@ void error(std::error_code EC) {
 void error(Error E) {
   if (!E)
     return;
-  WithColor::error(errs(), ToolName) << toString(std::move(E));
+  WithColor::error(errs()) << toString(std::move(E));
   exit(1);
 }
 
 LLVM_ATTRIBUTE_NORETURN void error(Twine Message) {
-  WithColor::error(errs(), ToolName) << Message << ".\n";
+  WithColor::error(errs()) << Message << ".\n";
   errs().flush();
   exit(1);
 }
@@ -390,12 +390,12 @@ void warn(Twine Message) {
   // Output order between errs() and outs() matters especially for archive
   // files where the output is per member object.
   outs().flush();
-  WithColor::warning(errs(), ToolName) << Message << "\n";
+  WithColor::warning(errs()) << Message << "\n";
   errs().flush();
 }
 
 LLVM_ATTRIBUTE_NORETURN void report_error(StringRef File, Twine Message) {
-  WithColor::error(errs(), ToolName)
+  WithColor::error(errs())
       << "'" << File << "': " << Message << ".\n";
   exit(1);
 }
@@ -406,7 +406,7 @@ LLVM_ATTRIBUTE_NORETURN void report_error(Error E, StringRef File) {
   raw_string_ostream OS(Buf);
   logAllUnhandledErrors(std::move(E), OS);
   OS.flush();
-  WithColor::error(errs(), ToolName) << "'" << File << "': " << Buf;
+  WithColor::error(errs()) << "'" << File << "': " << Buf;
   exit(1);
 }
 
@@ -414,7 +414,7 @@ LLVM_ATTRIBUTE_NORETURN void report_error(Error E, StringRef ArchiveName,
                                           StringRef FileName,
                                           StringRef ArchitectureName) {
   assert(E);
-  WithColor::error(errs(), ToolName);
+  WithColor::error(errs());
   if (ArchiveName != "")
     errs() << ArchiveName << "(" << FileName << ")";
   else
@@ -1879,7 +1879,7 @@ static void printUnwindInfo(const ObjectFile *O) {
     printMachOUnwindInfo(MachO);
   else
     // TODO: Extract DWARF dump tool to objdump.
-    WithColor::error(errs(), ToolName)
+    WithColor::error(errs())
         << "This operation is only currently supported "
            "for COFF and MachO object files.\n";
 }
@@ -1888,7 +1888,7 @@ static void printUnwindInfo(const ObjectFile *O) {
 /// into llvm-bcanalyzer.
 void printRawClangAST(const ObjectFile *Obj) {
   if (outs().is_displayed()) {
-    WithColor::error(errs(), ToolName)
+    WithColor::error(errs())
         << "The -raw-clang-ast option will dump the raw binary contents of "
            "the clang ast section.\n"
            "Please redirect the output to a file or another program such as "
@@ -1930,7 +1930,7 @@ static void printFaultMaps(const ObjectFile *Obj) {
   } else if (isa<MachOObjectFile>(Obj)) {
     FaultMapSectionName = "__llvm_faultmaps";
   } else {
-    WithColor::error(errs(), ToolName)
+    WithColor::error(errs())
         << "This operation is only currently supported "
            "for ELF and Mach-O executable files.\n";
     return;
@@ -2002,7 +2002,7 @@ static void printFileHeaders(const ObjectFile *O) {
 static void printArchiveChild(StringRef Filename, const Archive::Child &C) {
   Expected<sys::fs::perms> ModeOrErr = C.getAccessMode();
   if (!ModeOrErr) {
-    WithColor::error(errs(), ToolName) << "ill-formed archive entry.\n";
+    WithColor::error(errs()) << "ill-formed archive entry.\n";
     consumeError(ModeOrErr.takeError());
     return;
   }
