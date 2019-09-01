@@ -134,19 +134,20 @@ static std::unique_ptr<Writer> createELFWriter(const CopyConfig &Config,
                                                Object &Obj, Buffer &Buf,
                                                ElfType OutputElfType) {
   // Depending on the initial ELFT and OutputFormat we need a different Writer.
+  bool WriteSectionHeaders = !Config.StripSections && Obj.HadShdrs;
   switch (OutputElfType) {
   case ELFT_ELF32LE:
-    return std::make_unique<ELFWriter<ELF32LE>>(Obj, Buf,
-                                                 !Config.StripSections);
+    return std::make_unique<ELFWriter<ELF32LE>>(Obj, Buf, Config.OnlyKeepDebug,
+                                                WriteSectionHeaders);
   case ELFT_ELF64LE:
-    return std::make_unique<ELFWriter<ELF64LE>>(Obj, Buf,
-                                                 !Config.StripSections);
+    return std::make_unique<ELFWriter<ELF64LE>>(Obj, Buf, Config.OnlyKeepDebug,
+                                                WriteSectionHeaders);
   case ELFT_ELF32BE:
-    return std::make_unique<ELFWriter<ELF32BE>>(Obj, Buf,
-                                                 !Config.StripSections);
+    return std::make_unique<ELFWriter<ELF32BE>>(Obj, Buf, Config.OnlyKeepDebug,
+                                                WriteSectionHeaders);
   case ELFT_ELF64BE:
-    return std::make_unique<ELFWriter<ELF64BE>>(Obj, Buf,
-                                                 !Config.StripSections);
+    return std::make_unique<ELFWriter<ELF64BE>>(Obj, Buf, Config.OnlyKeepDebug,
+                                                WriteSectionHeaders);
   }
   llvm_unreachable("Invalid output format");
 }
@@ -485,6 +486,11 @@ static Error replaceAndRemoveSections(const CopyConfig &Config, Object &Obj) {
       return RemovePred(Sec) || isDebugSection(Sec);
     };
   }
+
+  if (Config.OnlyKeepDebug)
+    for (SectionBase &Sec : Obj.allocSections())
+      if (Sec.Type != SHT_NOTE)
+        Sec.Type = SHT_NOBITS;
 
   if (Config.StripNonAlloc)
     RemovePred = [RemovePred, &Obj](const SectionBase &Sec) {

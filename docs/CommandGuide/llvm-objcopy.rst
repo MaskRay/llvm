@@ -67,6 +67,11 @@ multiple file formats.
 
  Print a summary of command line options.
 
+.. option:: --only-keep-debug
+
+ Remove the contents of non-debug sections from the output, but keep the section
+ headers.
+
 .. option:: --only-section <section>, -j
 
  Remove all sections from the output, except for sections named ``<section>``.
@@ -148,11 +153,6 @@ COFF-SPECIFIC OPTIONS
 The following options are implemented only for COFF objects. If used with other
 objects, :program:`llvm-objcopy` will either emit an error or silently ignore
 them.
-
-.. option:: --only-keep-debug
-
- Remove the contents of non-debug sections from the output, but keep the section
- headers.
 
 ELF-SPECIFIC OPTIONS
 --------------------

@@ -1782,8 +1782,10 @@ template <class ELFT> void ELFWriter<ELFT>::writeSegmentData() {
 }
 
 template <class ELFT>
-ELFWriter<ELFT>::ELFWriter(Object &Obj, Buffer &Buf, bool WSH)
-    : Writer(Obj, Buf), WriteSectionHeaders(WSH && Obj.HadShdrs) {}
+ELFWriter<ELFT>::ELFWriter(Object &Obj, Buffer &Buf, bool OnlyKeepDebug,
+                           bool WriteSectionHeaders)
+    : Writer(Obj, Buf), OnlyKeepDebug(OnlyKeepDebug),
+      WriteSectionHeaders(WriteSectionHeaders) {}
 
 Error Object::removeSections(bool AllowBrokenLinks,
     std::function<bool(const SectionBase &)> ToRemove) {
@@ -1924,6 +1926,17 @@ static uint64_t layoutSections(Range Sections, uint64_t Offset) {
   return Offset;
 }
 
+static uint64_t layoutSectionsForOnlyKeepDebug(Object &Obj, uint64_t Off) {
+  uint32_t Index = 1;
+  for (SectionBase &Sec : Obj.sections()) {
+    Sec.Index = Index++;
+    Sec.Offset = alignTo(Off, Sec.Align ? Sec.Align : 1);
+    if (Sec.Type != SHT_NOBITS)
+      Off = Sec.Offset + Sec.Size;
+  }
+  return Off;
+}
+
 template <class ELFT> void ELFWriter<ELFT>::initEhdrSegment() {
   Segment &ElfHdr = Obj.ElfHdrSegment;
   ElfHdr.Type = PT_PHDR;
@@ -1944,12 +1957,21 @@ template <class ELFT> void ELFWriter<ELFT>::assignOffsets() {
   OrderedSegments.push_back(&Obj.ElfHdrSegment);
   OrderedSegments.push_back(&Obj.ProgramHdrSegment);
   orderSegments(OrderedSegments);
-  // Offset is used as the start offset of the first segment to be laid out.
-  // Since the ELF Header (ElfHdrSegment) must be at the start of the file,
-  // we start at offset 0.
-  uint64_t Offset = 0;
-  Offset = layoutSegments(OrderedSegments, Offset);
-  Offset = layoutSections(Obj.sections(), Offset);
+
+  uint64_t Offset;
+  if (OnlyKeepDebug) {
+    // For --only-keep-debug, we delete program headers because
+    // p_offset/p_filesz will conflict with section headers after we rewrite
+    // sh_offset fields.
+    Obj.clearSegments();
+    Offset = layoutSectionsForOnlyKeepDebug(Obj, sizeof(Elf_Ehdr));
+  } else {
+    // Offset is used as the start offset of the first segment to be laid out.
+    // Since the ELF Header (ElfHdrSegment) must be at the start of the file,
+    // we start at offset 0.
+    Offset = layoutSegments(OrderedSegments, 0);
+    Offset = layoutSections(Obj.sections(), Offset);
+  }
   // If we need to write the section header table out then we need to align the
   // Offset so that SHOffset is valid.
   if (WriteSectionHeaders)
@@ -1967,12 +1989,23 @@ template <class ELFT> size_t ELFWriter<ELFT>::totalSize() const {
 }
 
 template <class ELFT> Error ELFWriter<ELFT>::write() {
-  // Segment data must be written first, so that the ELF header and program
-  // header tables can overwrite it, if covered by a segment.
-  writeSegmentData();
-  writeEhdr();
-  writePhdrs();
-  writeSectionData();
+  if (OnlyKeepDebug) {
+    // --only-keep-debug uses a custom layout algorithm that rewrites sh_offset
+    // fields. Only ELF header, section header and contents of non-SHT_NOBITS
+    // sections are needed.
+    writeEhdr();
+    for (SectionBase &Sec : Obj.sections())
+      if (Sec.Type != SHT_NOBITS)
+        Sec.accept(*SecWriter);
+  } else {
+    // Segment data must be written first, so that the ELF header and program
+    // header tables can overwrite it, if covered by a segment.
+    writeSegmentData();
+    writeEhdr();
+    writePhdrs();
+    writeSectionData();
+  }
+
   if (WriteSectionHeaders)
     writeShdrs();
   return Buf.commit();

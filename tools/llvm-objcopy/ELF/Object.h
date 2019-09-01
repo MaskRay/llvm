@@ -340,11 +340,13 @@ private:
 
 public:
   virtual ~ELFWriter() {}
+  bool OnlyKeepDebug;
   bool WriteSectionHeaders;
 
   Error finalize() override;
   Error write() override;
-  ELFWriter(Object &Obj, Buffer &Buf, bool WSH);
+  ELFWriter(Object &Obj, Buffer &Buf, bool OnlyKeepDebug,
+            bool WriteSectionHeaders);
 };
 
 class BinaryWriter : public Writer {
@@ -1048,6 +1050,7 @@ public:
 
   Range<Segment> segments() { return make_pointee_range(Segments); }
   ConstRange<Segment> segments() const { return make_pointee_range(Segments); }
+  void clearSegments() { Segments.clear(); }
 
   Error removeSections(bool AllowBrokenLinks,
                        std::function<bool(const SectionBase &)> ToRemove);

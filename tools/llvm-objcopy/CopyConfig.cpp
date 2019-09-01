@@ -757,7 +757,8 @@ parseStripOptions(ArrayRef<const char *> ArgsArr,
 
   if (!InputArgs.hasArg(STRIP_no_strip_all) && !Config.StripDebug &&
       !Config.StripUnneeded && Config.DiscardMode == DiscardType::None &&
-      !Config.StripAllGNU && Config.SymbolsToRemove.empty())
+      !Config.StripAllGNU && Config.SymbolsToRemove.empty() &&
+      !Config.OnlyKeepDebug)
     Config.StripAll = true;
 
   if (Config.DiscardMode == DiscardType::All)
