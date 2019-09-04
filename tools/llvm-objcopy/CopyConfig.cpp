@@ -298,7 +298,6 @@ static const StringMap<MachineInfo> TargetMap{
     // ARM
     {"elf32-littlearm", {ELF::EM_ARM, false, true}},
     // ARM AArch64
-    {"elf64-aarch64", {ELF::EM_AARCH64, true, true}},
     {"elf64-littleaarch64", {ELF::EM_AARCH64, true, true}},
     // RISC-V
     {"elf32-littleriscv", {ELF::EM_RISCV, false, true}},

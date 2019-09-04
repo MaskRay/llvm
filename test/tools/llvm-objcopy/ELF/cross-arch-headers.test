@@ -25,10 +25,6 @@
 # RUN: llvm-readobj --file-headers %t.elf32_littlearm.o | FileCheck %s --check-prefixes=CHECK,LE,ARM,32,SYSV
 # RUN: llvm-readobj --file-headers %t.elf32_littlearm.dwo | FileCheck %s --check-prefixes=CHECK,LE,ARM,32,SYSV
 
-# RUN: llvm-objcopy %t.o -O elf64-aarch64 %t.elf64_aarch64.o --split-dwo=%t.elf64_aarch64.dwo
-# RUN: llvm-readobj --file-headers %t.elf64_aarch64.o | FileCheck %s --check-prefixes=CHECK,LE,AARCH,64,SYSV
-# RUN: llvm-readobj --file-headers %t.elf64_aarch64.dwo | FileCheck %s --check-prefixes=CHECK,LE,AARCH,64,SYSV
-
 # RUN: llvm-objcopy %t.o -O elf64-littleaarch64 %t.elf64_littleaarch64.o --split-dwo=%t.elf64_littleaarch64.dwo
 # RUN: llvm-readobj --file-headers %t.elf64_littleaarch64.o | FileCheck %s --check-prefixes=CHECK,LE,AARCH,64,SYSV
 # RUN: llvm-readobj --file-headers %t.elf64_littleaarch64.dwo | FileCheck %s --check-prefixes=CHECK,LE,AARCH,64,SYSV
