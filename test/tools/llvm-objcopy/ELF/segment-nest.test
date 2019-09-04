@@ -1,0 +1,53 @@
+## When a PT_LOAD, a PT_GNU_RELRO, and a PT_TLS have the same offset.
+## We should move the PT_LOAD parent of the PT_GNU_RELRO, and the PT_GNU_RELRO
+## parent of PT_TLS.
+
+# RUN: yaml2obj %s -o %t
+# RUN: llvm-objcopy %t %t2
+# RUN: llvm-readobj --program-headers %t2 | FileCheck %s
+# RUN: llvm-strip --no-strip-all %t -o %t3
+# RUN: cmp %t2 %t3
+
+## If we make PT_GNU_RELRO or PT_TLS the parent, p_offset will be less than 0x200.
+
+# CHECK:      ProgramHeaders [
+# CHECK-NEXT:   ProgramHeader {
+# CHECK-NEXT:     Type: PT_TLS (0x7)
+# CHECK-NEXT:     Offset: 0x200
+# CHECK:        ProgramHeader {
+# CHECK-NEXT:     Type: PT_GNU_RELRO (0x6474E552)
+# CHECK-NEXT:     Offset: 0x200
+# CHECK:        ProgramHeader {
+# CHECK-NEXT:     Type: PT_LOAD (0x1)
+# CHECK-NEXT:     Offset: 0x200
+
+--- !ELF
+FileHeader:
+  Class:   ELFCLASS64
+  Data:    ELFDATA2LSB
+  Type:    ET_EXEC
+  Machine: EM_X86_64
+Sections:
+  - Name:         padding
+    Type:         SHT_PROGBITS
+    AddressAlign: 0x800
+ProgramHeaders:
+  - Type:     PT_TLS
+    Offset:   0x400
+    FileSize: 0x10
+    MemSize:  0x10
+    VAddr:    0x200
+    Align:    0x40
+  - Type:     PT_GNU_RELRO
+    Offset:   0x400
+    FileSize: 0x10
+    MemSize:  0x10
+    VAddr:    0x200
+    Align:    0x1
+    Align:    0x1
+  - Type:     PT_LOAD
+    Offset:   0x400
+    FileSize: 0x10
+    MemSize:  0x10
+    VAddr:    0x200
+    Align:    0x200

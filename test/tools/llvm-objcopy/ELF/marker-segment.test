@@ -59,7 +59,7 @@ ProgramHeaders:
 #CHECK:     ProgramHeaders [
 #CHECK-NEXT:   ProgramHeader {
 #CHECK-NEXT:    Type: PT_LOAD
-#CHECK-NEXT:    Offset: 0x1000
+#CHECK-NEXT:    Offset: 0x0
 #CHECK-NEXT:    VirtualAddress: 0x1000
 #CHECK-NEXT:    PhysicalAddress: 0x1000
 #CHECK-NEXT:    FileSize: 16
@@ -72,7 +72,7 @@ ProgramHeaders:
 #CHECK-NEXT:  }
 #CHECK-NEXT:  ProgramHeader {
 #CHECK-NEXT:    Type: PT_LOAD
-#CHECK-NEXT:    Offset: 0x2000
+#CHECK-NEXT:    Offset: 0x1000
 #CHECK-NEXT:    VirtualAddress: 0x2000
 #CHECK-NEXT:    PhysicalAddress: 0x2000
 #CHECK-NEXT:    FileSize: 16
@@ -98,7 +98,7 @@ ProgramHeaders:
 #CHECK-NEXT:  }
 #CHECK-NEXT:  ProgramHeader {
 #CHECK-NEXT:    Type: PT_LOAD
-#CHECK-NEXT:    Offset: 0x2010
+#CHECK-NEXT:    Offset: 0x1010
 #CHECK-NEXT:    VirtualAddress: 0x2010
 #CHECK-NEXT:    PhysicalAddress: 0x2010
 #CHECK-NEXT:    FileSize: 0

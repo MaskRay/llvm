@@ -1091,10 +1091,19 @@ static bool segmentOverlapsSegment(const Segment &Child,
 static bool compareSegmentsByOffset(const Segment *A, const Segment *B) {
   // Any segment without a parent segment should come before a segment
   // that has a parent segment.
-  if (A->OriginalOffset < B->OriginalOffset)
-    return true;
-  if (A->OriginalOffset > B->OriginalOffset)
-    return false;
+  if (A->OriginalOffset != B->OriginalOffset)
+    return A->OriginalOffset < B->OriginalOffset;
+
+  // PT_LOAD (1) may contain other segment types, e.g. PT_DYNAMIC (2), PT_NOTE
+  // (4), PT_TLS (7), PT_GNU_RELRO (0x6474e552). If both PT_GNU_RELRO and PT_TLS
+  // exist, PT_GNU_RELRO should contain PT_TLS. This rule makes sure:
+  // 1. PT_LOAD < PT_GNU_RELRO < PT_TLS.
+  // 2. PT_LOAD < other segment types that may be nested in PT_LOAD.
+  uint32_t AT = A->Type == PT_GNU_RELRO ? 2 : A->Type;
+  uint32_t BT = B->Type == PT_GNU_RELRO ? 2 : B->Type;
+  if (AT != BT)
+    return AT < BT;
+
   return A->Index < B->Index;
 }
 
@@ -1876,6 +1885,8 @@ static uint64_t layoutSegments(std::vector<Segment *> &Segments,
   // segments. So we can simply layout segments one after the other accounting
   // for alignment.
   for (Segment *Seg : Segments) {
+    if (Seg->Type == PT_PHDR)
+      continue;
     // We assume that segments have been ordered by OriginalOffset and Index
     // such that a parent segment will always come before a child segment in
     // OrderedSegments. This means that the Offset of the ParentSegment should
