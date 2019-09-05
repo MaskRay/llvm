@@ -36,21 +36,15 @@ void AddressRanges::insert(AddressRange Range) {
 }
 
 bool AddressRanges::contains(uint64_t Addr) const {
-  auto It = std::partition_point(
-      Ranges.begin(), Ranges.end(),
-      [=](const AddressRange &R) { return R.Start <= Addr; });
+  auto It = llvm::partition_point(
+      Ranges, [=](const AddressRange &R) { return R.Start <= Addr; });
   return It != Ranges.begin() && Addr < It[-1].End;
 }
 
 bool AddressRanges::contains(AddressRange Range) const {
-  if (Range.size() == 0)
-    return false;
-  auto It = std::partition_point(
-      Ranges.begin(), Ranges.end(),
-      [=](const AddressRange &R) { return R.Start <= Range.Start; });
-  if (It == Ranges.begin())
-    return false;
-  return Range.End <= It[-1].End;
+  auto It = llvm::partition_point(
+      Ranges, [=](const AddressRange &R) { return R.Start <= Range.Start; });
+  return It != Ranges.begin() && Range.End <= It[-1].End;
 }
 
 raw_ostream &llvm::gsym::operator<<(raw_ostream &OS, const AddressRange &R) {
