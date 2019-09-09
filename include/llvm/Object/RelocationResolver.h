@@ -31,7 +31,8 @@
 namespace llvm {
 namespace object {
 
-using RelocationResolver = uint64_t (*)(RelocationRef R, uint64_t S, uint64_t A);
+using RelocationResolver = Expected<uint64_t> (*)(RelocationRef R, uint64_t S,
+                                                  uint64_t A);
 
 std::pair<bool (*)(uint64_t), RelocationResolver>
 getRelocationResolver(const ObjectFile &Obj);

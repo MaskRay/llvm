@@ -23,6 +23,21 @@ static int64_t getELFAddend(RelocationRef R) {
   return *AddendOrErr;
 }
 
+static Expected<uint64_t> reportError(StringRef type, const Twine &v,
+                                      int64_t min, uint64_t max) {
+  return createStringError(inconvertibleErrorCode(),
+                           "relocation " + type + " out of range: " + Twine(v) +
+                               " is not in [" + Twine(min) + ", " + Twine(max) +
+                               "]");
+}
+
+static Expected<uint64_t> checkInt(uint32_t machine, uint32_t type, int64_t v, int n) {
+  if (v == llvm::SignExtend64(v, n))
+    return v;
+  return reportError(getELFRelocationTypeName(machine, type), Twine(v),
+                     minIntN(n), maxIntN(n));
+}
+
 static bool supportsX86_64(uint64_t Type) {
   switch (Type) {
   case ELF::R_X86_64_NONE:
@@ -38,19 +53,24 @@ static bool supportsX86_64(uint64_t Type) {
   }
 }
 
-static uint64_t resolveX86_64(RelocationRef R, uint64_t S, uint64_t A) {
-  switch (R.getType()) {
+static Expected<uint64_t> resolveX86_64(RelocationRef r, uint64_t s,
+                                        uint64_t /*a*/) {
+  uint32_t type = r.getType();
+  uint64_t a = getELFAddend(r);
+  switch (type) {
   case ELF::R_X86_64_NONE:
-    return A;
+    return a;
   case ELF::R_X86_64_64:
   case ELF::R_X86_64_DTPOFF32:
   case ELF::R_X86_64_DTPOFF64:
-    return S + getELFAddend(R);
-  case ELF::R_X86_64_PC32:
-    return S + getELFAddend(R) - R.getOffset();
+    return s + a;
+  case ELF::R_X86_64_PC32: {
+    uint64_t v =  s + a - r.getOffset();
+    return checkInt(ELF::EM_X86_64, type, v, 32);
+  }
   case ELF::R_X86_64_32:
   case ELF::R_X86_64_32S:
-    return (S + getELFAddend(R)) & 0xFFFFFFFF;
+    return (s + a) & 0xFFFFFFFF;
   default:
     llvm_unreachable("Invalid relocation type");
   }
@@ -66,7 +86,8 @@ static bool supportsAArch64(uint64_t Type) {
   }
 }
 
-static uint64_t resolveAArch64(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveAArch64(RelocationRef R, uint64_t S,
+                                         uint64_t A) {
   switch (R.getType()) {
   case ELF::R_AARCH64_ABS32:
     return (S + getELFAddend(R)) & 0xFFFFFFFF;
@@ -87,7 +108,7 @@ static bool supportsBPF(uint64_t Type) {
   }
 }
 
-static uint64_t resolveBPF(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveBPF(RelocationRef R, uint64_t S, uint64_t A) {
   switch (R.getType()) {
   case ELF::R_BPF_64_32:
     return (S + A) & 0xFFFFFFFF;
@@ -109,7 +130,8 @@ static bool supportsMips64(uint64_t Type) {
   }
 }
 
-static uint64_t resolveMips64(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveMips64(RelocationRef R, uint64_t S,
+                                        uint64_t A) {
   switch (R.getType()) {
   case ELF::R_MIPS_32:
     return (S + getELFAddend(R)) & 0xFFFFFFFF;
@@ -132,7 +154,8 @@ static bool supportsPPC64(uint64_t Type) {
   }
 }
 
-static uint64_t resolvePPC64(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolvePPC64(RelocationRef R, uint64_t S,
+                                       uint64_t A) {
   switch (R.getType()) {
   case ELF::R_PPC64_ADDR32:
     return (S + getELFAddend(R)) & 0xFFFFFFFF;
@@ -153,7 +176,8 @@ static bool supportsSystemZ(uint64_t Type) {
   }
 }
 
-static uint64_t resolveSystemZ(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveSystemZ(RelocationRef R, uint64_t S,
+                                         uint64_t A) {
   switch (R.getType()) {
   case ELF::R_390_32:
     return (S + getELFAddend(R)) & 0xFFFFFFFF;
@@ -176,7 +200,8 @@ static bool supportsSparc64(uint64_t Type) {
   }
 }
 
-static uint64_t resolveSparc64(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveSparc64(RelocationRef R, uint64_t S,
+                                         uint64_t A) {
   switch (R.getType()) {
   case ELF::R_SPARC_32:
   case ELF::R_SPARC_64:
@@ -198,7 +223,8 @@ static bool supportsAmdgpu(uint64_t Type) {
   }
 }
 
-static uint64_t resolveAmdgpu(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveAmdgpu(RelocationRef R, uint64_t S,
+                                        uint64_t A) {
   switch (R.getType()) {
   case ELF::R_AMDGPU_ABS32:
   case ELF::R_AMDGPU_ABS64:
@@ -219,7 +245,7 @@ static bool supportsX86(uint64_t Type) {
   }
 }
 
-static uint64_t resolveX86(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveX86(RelocationRef R, uint64_t S, uint64_t A) {
   switch (R.getType()) {
   case ELF::R_386_NONE:
     return A;
@@ -236,7 +262,8 @@ static bool supportsPPC32(uint64_t Type) {
   return Type == ELF::R_PPC_ADDR32;
 }
 
-static uint64_t resolvePPC32(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolvePPC32(RelocationRef R, uint64_t S,
+                                       uint64_t A) {
   if (R.getType() == ELF::R_PPC_ADDR32)
     return (S + getELFAddend(R)) & 0xFFFFFFFF;
   llvm_unreachable("Invalid relocation type");
@@ -246,7 +273,7 @@ static bool supportsARM(uint64_t Type) {
   return Type == ELF::R_ARM_ABS32;
 }
 
-static uint64_t resolveARM(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveARM(RelocationRef R, uint64_t S, uint64_t A) {
   if (R.getType() == ELF::R_ARM_ABS32)
     return (S + A) & 0xFFFFFFFF;
   llvm_unreachable("Invalid relocation type");
@@ -262,7 +289,7 @@ static bool supportsAVR(uint64_t Type) {
   }
 }
 
-static uint64_t resolveAVR(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveAVR(RelocationRef R, uint64_t S, uint64_t A) {
   switch (R.getType()) {
   case ELF::R_AVR_16:
     return (S + getELFAddend(R)) & 0xFFFF;
@@ -277,7 +304,8 @@ static bool supportsLanai(uint64_t Type) {
   return Type == ELF::R_LANAI_32;
 }
 
-static uint64_t resolveLanai(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveLanai(RelocationRef R, uint64_t S,
+                                       uint64_t A) {
   if (R.getType() == ELF::R_LANAI_32)
     return (S + getELFAddend(R)) & 0xFFFFFFFF;
   llvm_unreachable("Invalid relocation type");
@@ -293,7 +321,8 @@ static bool supportsMips32(uint64_t Type) {
   }
 }
 
-static uint64_t resolveMips32(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveMips32(RelocationRef R, uint64_t S,
+                                        uint64_t A) {
   // FIXME: Take in account implicit addends to get correct results.
   uint32_t Rel = R.getType();
   if (Rel == ELF::R_MIPS_32)
@@ -313,7 +342,8 @@ static bool supportsSparc32(uint64_t Type) {
   }
 }
 
-static uint64_t resolveSparc32(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveSparc32(RelocationRef R, uint64_t S,
+                                         uint64_t A) {
   uint32_t Rel = R.getType();
   if (Rel == ELF::R_SPARC_32 || Rel == ELF::R_SPARC_UA32)
     return S + getELFAddend(R);
@@ -324,7 +354,8 @@ static bool supportsHexagon(uint64_t Type) {
   return Type == ELF::R_HEX_32;
 }
 
-static uint64_t resolveHexagon(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveHexagon(RelocationRef R, uint64_t S,
+                                         uint64_t A) {
   if (R.getType() == ELF::R_HEX_32)
     return S + getELFAddend(R);
   llvm_unreachable("Invalid relocation type");
@@ -351,7 +382,8 @@ static bool supportsRISCV(uint64_t Type) {
   }
 }
 
-static uint64_t resolveRISCV(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveRISCV(RelocationRef R, uint64_t S,
+                                       uint64_t A) {
   int64_t RA = getELFAddend(R);
   switch (R.getType()) {
   case ELF::R_RISCV_NONE:
@@ -395,7 +427,8 @@ static bool supportsCOFFX86(uint64_t Type) {
   }
 }
 
-static uint64_t resolveCOFFX86(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveCOFFX86(RelocationRef R, uint64_t S,
+                                         uint64_t A) {
   switch (R.getType()) {
   case COFF::IMAGE_REL_I386_SECREL:
   case COFF::IMAGE_REL_I386_DIR32:
@@ -415,7 +448,8 @@ static bool supportsCOFFX86_64(uint64_t Type) {
   }
 }
 
-static uint64_t resolveCOFFX86_64(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveCOFFX86_64(RelocationRef R, uint64_t S,
+                                            uint64_t A) {
   switch (R.getType()) {
   case COFF::IMAGE_REL_AMD64_SECREL:
     return (S + A) & 0xFFFFFFFF;
@@ -436,7 +470,7 @@ static bool supportsCOFFARM(uint64_t Type) {
   }
 }
 
-static uint64_t resolveCOFFARM(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveCOFFARM(RelocationRef R, uint64_t S, uint64_t A) {
   switch (R.getType()) {
   case COFF::IMAGE_REL_ARM_SECREL:
   case COFF::IMAGE_REL_ARM_ADDR32:
@@ -456,7 +490,8 @@ static bool supportsCOFFARM64(uint64_t Type) {
   }
 }
 
-static uint64_t resolveCOFFARM64(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveCOFFARM64(RelocationRef R, uint64_t S,
+                                           uint64_t A) {
   switch (R.getType()) {
   case COFF::IMAGE_REL_ARM64_SECREL:
     return (S + A) & 0xFFFFFFFF;
@@ -471,7 +506,8 @@ static bool supportsMachOX86_64(uint64_t Type) {
   return Type == MachO::X86_64_RELOC_UNSIGNED;
 }
 
-static uint64_t resolveMachOX86_64(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveMachOX86_64(RelocationRef R, uint64_t S,
+                                             uint64_t A) {
   if (R.getType() == MachO::X86_64_RELOC_UNSIGNED)
     return S;
   llvm_unreachable("Invalid relocation type");
@@ -496,7 +532,8 @@ static bool supportsWasm32(uint64_t Type) {
   }
 }
 
-static uint64_t resolveWasm32(RelocationRef R, uint64_t S, uint64_t A) {
+static Expected<uint64_t> resolveWasm32(RelocationRef R, uint64_t S,
+                                        uint64_t A) {
   switch (R.getType()) {
   case wasm::R_WASM_FUNCTION_INDEX_LEB:
   case wasm::R_WASM_TABLE_INDEX_SLEB:

@@ -4744,9 +4744,11 @@ void DumpStyle<ELFT>::printStackSize(const ELFObjectFile<ELFT> *Obj,
         FileStr);
 
   uint64_t Addend = Data.getAddress(&Offset);
-  uint64_t SymValue = Resolver(Reloc, RelocSymValue, Addend);
-  this->printFunctionStackSize(Obj, SymValue, FunctionSec, StackSizeSectionName,
-                               Data, &Offset);
+  if (Expected<uint64_t> SymValue = Resolver(Reloc, RelocSymValue, Addend))
+    this->printFunctionStackSize(Obj, *SymValue, FunctionSec,
+                                 StackSizeSectionName, Data, &Offset);
+  else
+    reportWarning(SymValue.takeError(), FileStr);
 }
 
 template <class ELFT>
