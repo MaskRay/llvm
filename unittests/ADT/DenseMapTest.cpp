@@ -191,6 +191,24 @@ TYPED_TEST(DenseMapTest, InsertTest) {
   EXPECT_EQ(this->getValue(), this->Map[this->getKey()]);
 }
 
+TEST(DenseMapCustomTest, InsertOrAssignTest) {
+  DenseMap<int, std::unique_ptr<int>> Map;
+  auto Try1 = Map.insert_or_assign(0, std::make_unique<int>(1));
+  EXPECT_TRUE(Try1.second);
+  auto Try2 = Map.insert_or_assign(0, std::make_unique<int>(2));
+  EXPECT_FALSE(Try2.second);
+  EXPECT_EQ(2, *Try2.first->getSecond());
+  EXPECT_EQ(Try1.first, Try2.first);
+
+  int Key = 1;
+  auto Try3 = Map.insert_or_assign(Key, std::make_unique<int>(3));
+  EXPECT_TRUE(Try3.second);
+  auto Try4 = Map.insert_or_assign(Key, std::make_unique<int>(4));
+  EXPECT_FALSE(Try4.second);
+  EXPECT_EQ(4, *Try4.first->getSecond());
+  EXPECT_EQ(Try3.first, Try4.first);
+}
+
 // Test copy constructor method
 TYPED_TEST(DenseMapTest, CopyConstructorTest) {
   this->Map[this->getKey()] = this->getValue();
